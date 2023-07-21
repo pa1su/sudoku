@@ -86,6 +86,7 @@ public class Game {
     for (int value : orderedValues) {
       if (isValidPlacement(row, col, value)) {
         sudoku.getBoard()[row][col].setValue(value);
+        evaluations++;
         if (backtrack(heuristic)) {
           return true;
         }
@@ -137,7 +138,7 @@ public class Game {
   }
 
   private boolean arcReduce(Field neighbor, Field current) {
-
+    evaluations++;
     if (neighbor.removeFromDomain(current.getValue())) {
       if (neighbor.getDomainSize() == 0) {
         return true; // Domain reduced to zero, invalid state
@@ -145,7 +146,6 @@ public class Game {
       if (neighbor.getDomainSize() == 1 && neighbor.getValue() == 0) {
         neighbor.setValue(neighbor.getDomain().get(0)); // Only one value left in domain, assign it
       }
-      evaluations++;
     }
     return false;
   }
