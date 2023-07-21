@@ -1,6 +1,9 @@
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
+import java.util.List;
+import java.util.ArrayList;
+
 
 public class Sudoku {
   private Field[][] board;
@@ -69,8 +72,44 @@ public class Sudoku {
    * @param grid
    */
   private static void addNeighbours(Field[][] grid) {
-    // TODO: for each field, add its neighbours
+
+      for (int i = 0; i < grid.length; i++) {
+          for (int j = 0; j < grid[0].length; j++) {
+              grid[i][j].setNeighbours(findNeighbors(grid, i, j));
+          }
+      }
   }
+    /**
+     * Finds and returns a list of neighbors for the given field position
+     *
+     * @param grid The sudoku grid
+     * @param row  The row index of the field
+     * @param col  The column index of the field
+     * @return List of neighboring fields
+     */
+    private static List<Field> findNeighbors(Field[][] grid, int row, int col) {
+        List<Field> neighbors = new ArrayList<>();
+        for (int i = 0; i < 9; i++) {
+            if (i != col) {
+                neighbors.add(grid[row][i]);
+            }
+        }
+        for (int i = 0; i < 9; i++) {
+            if (i != row) {
+                neighbors.add(grid[i][col]);
+            }
+        }
+        int boxStartRow = 3 * (row / 3);
+        int boxStartCol = 3 * (col / 3);
+        for (int i = boxStartRow; i < boxStartRow + 3; i++) {
+            for (int j = boxStartCol; j < boxStartCol + 3; j++) {
+                if (i != row && j != col) {
+                    neighbors.add(grid[i][j]);
+                }
+            }
+        }
+        return neighbors;
+    }
 
   /**
 	 * Generates fileformat output

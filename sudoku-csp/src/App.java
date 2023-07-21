@@ -1,11 +1,11 @@
 public class App {
     public static void main(String[] args) throws Exception {
-        start("Sudoku1.txt");
+        start("D:\\sudoku\\sudoku-csp\\Sudoku5.txt");
     }
 
     /**
      * Start AC-3 using the sudoku from the given filepath, and reports whether the sudoku could be solved or not, and how many steps the algorithm performed
-     * 
+     *
      * @param filePath
      */
     public static void start(String filePath){
