@@ -19,7 +19,7 @@ public class App {
         game1.showSudoku();
         game1.resetEvaluations();
 
-        String[] heuristics = {"MRV"};
+        String[] heuristics = {"MRV","Degree","LCV","None"};
         for (String heuristic : heuristics) {
             game1.solve(heuristic);
             if (game1.validSolution()) {
