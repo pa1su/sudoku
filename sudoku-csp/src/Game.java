@@ -5,10 +5,11 @@ import java.util.Set;
 import java.util.*;
 public class Game {
   private Sudoku sudoku;
- // private int evaluations;
+  private int evaluations;
 
   Game(Sudoku sudoku) {
     this.sudoku = sudoku;
+    //evaluations = 0;
   }
 
   public void showSudoku() {
@@ -20,7 +21,7 @@ public class Game {
    * 
    * @return true if the constraints can be satisfied, else false
    */
-  public boolean solve() {
+  public boolean solve(String heuristic) {
     // Reset evaluations count for each solve call
     //evaluations = 0;
     Queue<Field> queue = new ArrayDeque<>();
@@ -44,7 +45,7 @@ public class Game {
       }
     }
 
-    return backtrackSolve();
+    return backtrackSolve(heuristic);
   }
 
   /**
@@ -52,11 +53,11 @@ public class Game {
    *
    * @return true if the sudoku is successfully completed, else false
    */
-  private boolean backtrackSolve() {
-    return backtrack();
+  private boolean backtrackSolve(String heuristic) {
+    return backtrack(heuristic);
   }
 
-  private boolean backtrack() {
+  private boolean backtrack(String heuristic) {
     // Find the next empty field
     int[] nextEmpty = findNextEmpty();
     int row = nextEmpty[0];
@@ -67,22 +68,30 @@ public class Game {
       return true;
     }
 
-    // Try different values for the empty field
-    for (int value = 1; value <= 9; value++) {
-      if (isValidPlacement(row, col, value)) {
-        // Assign the value to the field
-        sudoku.getBoard()[row][col].setValue(value);
 
-        // Recursively check if this assignment leads to a solution
-        if (backtrack()) {
-          return true;
-        }
-
-        // If the current assignment doesn't lead to a solution, reset the field and try the next value
-        sudoku.getBoard()[row][col].setValue(0);
+    List<Integer> orderedValues;
+    if (heuristic.equals("MRV")) {
+      orderedValues = getValuesOrderedByMRV(sudoku.getBoard()[row][col]);
+    } else if (heuristic.equals("Degree")) {
+      orderedValues = getValuesOrderedByDegree(sudoku.getBoard()[row][col]);
+    } else if (heuristic.equals("LCV")) {
+      orderedValues = getValuesOrderedByLCV(sudoku.getBoard()[row][col]);
+    } else {
+      orderedValues = new ArrayList<>();
+      for (int i = 1; i <= 9; i++) {
+        orderedValues.add(i);
       }
     }
 
+    for (int value : orderedValues) {
+      if (isValidPlacement(row, col, value)) {
+        sudoku.getBoard()[row][col].setValue(value);
+        if (backtrack(heuristic)) {
+          return true;
+        }
+        sudoku.getBoard()[row][col].setValue(0);
+      }
+    }
     // No value can be assigned to the current empty field, backtrack
     return false;
   }
@@ -128,6 +137,7 @@ public class Game {
   }
 
   private boolean arcReduce(Field neighbor, Field current) {
+
     if (neighbor.removeFromDomain(current.getValue())) {
       if (neighbor.getDomainSize() == 0) {
         return true; // Domain reduced to zero, invalid state
@@ -135,9 +145,15 @@ public class Game {
       if (neighbor.getDomainSize() == 1 && neighbor.getValue() == 0) {
         neighbor.setValue(neighbor.getDomain().get(0)); // Only one value left in domain, assign it
       }
+      evaluations++;
     }
     return false;
   }
+
+  public int getEvaluations() {
+    return evaluations;
+  }
+
   /**
    * Checks the validity of a sudoku solution
    * 
@@ -200,60 +216,86 @@ public class Game {
     }
     return true;
   }
-  public boolean solveWithHeuristic(int heuristic) {
-    Queue<Field> queue;
-    switch (heuristic) {
-      case 1:
-        queue = new PriorityQueue<>(Comparator.comparingInt(this::getMRV));
-        break;
-      case 2:
-        queue = new PriorityQueue<>(Comparator.comparingInt(this::getDegreeHeuristic));
-        break;
-      default:
-        queue = new ArrayDeque<>();
+
+  private List<Integer> getValuesOrderedByLCV(Field variable) {
+    List<Integer> orderedValues = new ArrayList<>();
+    if (variable.getDomainSize() == 0) {
+      return orderedValues;
     }
 
-    for (Field[] row : sudoku.getBoard()) {
-      for (Field field : row) {
-        if (field.getValue() != 0) {
-          queue.add(field);
+    for (int value : variable.getDomain()) {
+      int count = 0;
+      for (Field neighbor : variable.getNeighbours()) {
+        if (neighbor.getValue() == 0 && neighbor.getDomain().contains(value)) {
+          count++;
         }
       }
+      int index = 0;
+      while (index < orderedValues.size() && count > getLCVCount(variable, orderedValues.get(index))) {
+        index++;
+      }
+      orderedValues.add(index, value);
     }
+    return orderedValues;
+  }
 
-    while (!queue.isEmpty()) {
-      Field current = queue.poll();
-      for (Field neighbor : current.getNeighbours()) {
-        if (arcReduce(neighbor, current)) {
-          if (neighbor.getDomainSize() == 0) {
-            return false; // Invalid sudoku state, domain becomes empty
-          }
-          queue.add(neighbor);
-        }
+  private int getLCVCount(Field variable, int value) {
+    int count = 0;
+    for (Field neighbor : variable.getNeighbours()) {
+      if (neighbor.getValue() == 0 && neighbor.getDomain().contains(value)) {
+        count++;
       }
     }
+    return count;
+  }
+  private List<Integer> getValuesOrderedByMRV(Field variable) {
+    List<Integer> orderedValues = new ArrayList<>();
+    if (variable.getDomainSize() == 0) {
+      return orderedValues;
+    }
 
-    // Additional step: Use backtracking to complete the sudoku
-    return backtrackSolve();
+    Map<Integer, Integer> valueConstraintCount = new HashMap<>();
+    for (int value : variable.getDomain()) {
+      int count = 0;
+      for (Field neighbor : variable.getNeighbours()) {
+        if (neighbor.getValue() == 0 && neighbor.getDomain().contains(value)) {
+          count++;
+        }
+      }
+      valueConstraintCount.put(value, count);
+    }
+
+    // Sort values based on the constraint count in ascending order
+    orderedValues.addAll(variable.getDomain());
+    orderedValues.sort(Comparator.comparingInt(valueConstraintCount::get));
+
+    return orderedValues;
   }
 
-  /**
-   * Get the Minimum Remaining Values (MRV) for the field
-   *
-   * @param field The field
-   * @return The size of the domain (remaining possible values)
-   */
-  private int getMRV(Field field) {
-    return field.getDomainSize();
-  }
+  private List<Integer> getValuesOrderedByDegree(Field variable) {
+    List<Integer> orderedValues = new ArrayList<>();
+    if (variable.getDomainSize() == 0) {
+      return orderedValues;
+    }
 
-  /**
-   * Get the degree heuristic for the field (number of constraints to finalized fields)
-   *
-   * @param field The field
-   * @return The degree heuristic value
-   */
-  private int getDegreeHeuristic(Field field) {
-    return (int) field.getNeighbours().stream().filter(f -> f.getValue() != 0).count();
+    Map<Integer, Integer> valueDegreeCount = new HashMap<>();
+    for (int value : variable.getDomain()) {
+      int degree = 0;
+      for (Field neighbor : variable.getNeighbours()) {
+        if (neighbor.getValue() == 0) {
+          degree++;
+        }
+      }
+      valueDegreeCount.put(value, degree);
+    }
+
+    // Sort values based on the degree count in descending order
+    orderedValues.addAll(variable.getDomain());
+    orderedValues.sort((a, b) -> valueDegreeCount.get(b) - valueDegreeCount.get(a));
+
+    return orderedValues;
+  }
+  public void resetEvaluations() {
+    evaluations = 0;
   }
 }
