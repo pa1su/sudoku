@@ -9,11 +9,12 @@ public class Game {
 
   Game(Sudoku sudoku) {
     this.sudoku = sudoku;
-    //evaluations = 0;
+    evaluations = 0;
   }
 
   public void showSudoku() {
     System.out.println(sudoku);
+
   }
 
   /**
@@ -84,9 +85,9 @@ public class Game {
     }
 
     for (int value : orderedValues) {
+      evaluations++;
       if (isValidPlacement(row, col, value)) {
         sudoku.getBoard()[row][col].setValue(value);
-        evaluations++;
         if (backtrack(heuristic)) {
           return true;
         }

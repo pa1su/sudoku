@@ -1,10 +1,10 @@
 public class App {
     public static void main(String[] args) throws Exception {
         start("D:\\sudoku\\sudoku-csp\\Sudoku1.txt");
-        //start("D:\\sudoku\\sudoku-csp\\Sudoku2.txt");
-        //start("D:\\sudoku\\sudoku-csp\\Sudoku3.txt");
-        //start("D:\\sudoku\\sudoku-csp\\Sudoku4.txt");
-        //start("D:\\sudoku\\sudoku-csp\\Sudoku5.txt");
+        start("D:\\sudoku\\sudoku-csp\\Sudoku2.txt");
+        start("D:\\sudoku\\sudoku-csp\\Sudoku3.txt");
+        start("D:\\sudoku\\sudoku-csp\\Sudoku4.txt");
+        start("D:\\sudoku\\sudoku-csp\\Sudoku5.txt");
 
 
     }
@@ -19,7 +19,7 @@ public class App {
         game1.showSudoku();
         game1.resetEvaluations();
 
-        String[] heuristics = {"None","MRV","Degree","LCV"};
+        String[] heuristics = {"MRV"};
         for (String heuristic : heuristics) {
             game1.solve(heuristic);
             if (game1.validSolution()) {
